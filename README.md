@@ -58,6 +58,7 @@ This will open the LangGraph Studio UI in your browser.
 Ask a question in the `messages` input field and click `Submit`. Select different configuration in the "Manage Assistants" tab.
 
 ### ⚙️ Configurations
+- Forked
 
 #### LLM :brain:
 
