@@ -365,7 +365,11 @@ async def fetch_tokens(config: RunnableConfig) -> dict[str, Any]:
         return current_tokens
     
     # Extract Supabase token for new token exchange
-    supabase_token = config.get("configurable", {}).get("x-supabase-access-token")
+    supabase_token = (
+        config.get("configurable", {}).get("x-supabase-access-token") or
+        config.get("metadata", {}).get("x-supabase-access-token") or
+        config.get("metadata", {}).get("supabaseAccessToken")
+    )
     if not supabase_token:
         return None
     
@@ -524,7 +528,6 @@ async def load_mcp_tools(
     
     return configured_tools
 
-
 ##########################
 # Tool Utils
 ##########################
@@ -568,13 +571,13 @@ async def get_search_tool(search_api: SearchAPI):
     return []
     
 async def get_all_tools(config: RunnableConfig):
-    """Assemble complete toolkit including research, search, and MCP tools.
+    """Assemble complete toolkit including research, search, RAG, and MCP tools.
     
     Args:
-        config: Runtime configuration specifying search API and MCP settings
+        config: Runtime configuration specifying search API, RAG, and MCP settings
         
     Returns:
-        List of all configured and available tools for research operations
+        List of all configured tools
     """
     # Start with core research tools
     tools = [tool(ResearchComplete), think_tool]
@@ -594,23 +597,71 @@ async def get_all_tools(config: RunnableConfig):
     # Add MCP tools if configured
     mcp_tools = await load_mcp_tools(config, existing_tool_names)
     tools.extend(mcp_tools)
-    
+
     # Add RAG tools if configured
-    supabase_token = config.get("configurable", {}).get("x-supabase-access-token")
+    # Debug: Log entire config structure to find where the token is
+    logging.info(f"FULL CONFIG KEYS: {list(config.keys())}")
+    logging.info(f"CONFIGURABLE KEYS: {list(config.get('configurable', {}).keys())}")
+    logging.info(f"METADATA KEYS: {list(config.get('metadata', {}).keys())}")
+    logging.info(f"METADATA CONTENT: {config.get('metadata', {})}")
+    
+    # Try multiple possible locations for the token
+    supabase_token = (
+        config.get("configurable", {}).get("x-supabase-access-token") or
+        config.get("metadata", {}).get("x-supabase-access-token") or
+        config.get("metadata", {}).get("supabaseAccessToken")  # ← The actual location!
+    )
+    
+    # Debug: Log raw config to see what OAP is actually sending
+    raw_rag = config.get("configurable", {}).get("rag")
+    logging.info(f"RAW rag from config: {raw_rag}")
+    
+    logging.info(f"RAG config check - rag exists: {configurable.rag is not None}, "
+                 f"rag_url: {configurable.rag.rag_url if configurable.rag else None}, "
+                 f"collections: {configurable.rag.collections if configurable.rag else None}, "
+                 f"supabase_token present: {supabase_token is not None}")
+    
     if configurable.rag and configurable.rag.rag_url and configurable.rag.collections and supabase_token:
-        for collection_id in configurable.rag.collections:
+        logging.info(f"Attempting to load {len(configurable.rag.collections)} RAG collection(s)")
+        for collection in configurable.rag.collections:
             try:
+                logging.info(f"Creating RAG tool for collection: {collection}")
                 rag_tool = await create_rag_tool(
                     configurable.rag.rag_url,
-                    collection_id,
+                    collection,
                     supabase_token
                 )
                 tools.append(rag_tool)
+                logging.info(f"Successfully created RAG tool: {rag_tool.name}")
             except Exception as e:
                 # Log but don't fail if RAG tool creation fails
-                logging.warning(f"Failed to create RAG tool for collection {collection_id}: {e}")
+                logging.warning(f"Failed to create RAG tool for collection {collection}: {e}")
+    else:
+        logging.info("RAG tools not configured - skipping RAG tool creation")
     
     return tools
+
+
+
+def generate_rag_tool_description(rag_tools: list[BaseTool]) -> str:
+    """Generate a description of available RAG tools for the system prompt.
+    
+    Args:
+        rag_tools: List of RAG tools that have been loaded
+        
+    Returns:
+        Formatted string describing the RAG tools
+    """
+    if not rag_tools:
+        return ""
+    
+    descriptions = []
+    for i, rag_tool in enumerate(rag_tools, start=3):  # Start at 3 (after web_search and think_tool)
+        tool_name = rag_tool.name if hasattr(rag_tool, 'name') else "unknown"
+        tool_desc = rag_tool.description if hasattr(rag_tool, 'description') else "Search indexed documents"
+        descriptions.append(f"{i}. **{tool_name}**: {tool_desc}")
+    
+    return "\n" + "\n".join(descriptions) if descriptions else ""
 
 def get_notes_from_tool_calls(messages: list[MessageLikeRepresentation]):
     """Extract notes from tool call messages."""

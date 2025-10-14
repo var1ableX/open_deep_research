@@ -1,6 +1,6 @@
 """System prompts and prompt templates for the Deep Research agent."""
 
-clarify_with_user_instructions="""
+clarify_with_user_instructions = """
 These are the messages that have been exchanged so far from the user asking for the report:
 <Messages>
 {messages}
@@ -143,12 +143,13 @@ You can use any of the tools provided to you to find resources that can help ans
 </Task>
 
 <Available Tools>
-You have access to two main tools:
-1. **tavily_search**: For conducting web searches to gather information
+You have access to the following tools:
+1. **web_search / tavily_search**: For conducting web searches to gather information from the internet
 2. **think_tool**: For reflection and strategic planning during research
 {mcp_prompt}
+{rag_prompt}
 
-**CRITICAL: Use think_tool after each search to reflect on results and plan next steps. Do not call think_tool with the tavily_search or any other tools. It should be to reflect on the results of the search.**
+**CRITICAL: Use think_tool after each search or retrieval to reflect on results and plan next steps. Do not call think_tool in parallel with search or RAG tools. It should be used to reflect on the results.**
 </Available Tools>
 
 <Instructions>

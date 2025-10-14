@@ -85,4 +85,3 @@ async def create_rag_tool(rag_url: str, collection_id: str, access_token: str):
 
     except Exception as e:
         raise Exception(f"Failed to create RAG tool: {str(e)}")
-

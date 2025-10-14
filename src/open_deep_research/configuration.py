@@ -252,7 +252,23 @@ class Configuration(BaseModel):
         metadata={
             "x_oap_ui_config": {
                 "type": "rag",
-                "description": "RAG server configuration for accessing indexed reference materials"
+                "description": "RAG server configuration",
+                # TODO: Replace with your actual collection UUID from http://localhost:8080/collections
+                # "default": {
+                #     "collections": [
+                #         "YOUR-COLLECTION-UUID-HERE"
+                #     ]
+                # }
+            }
+        }
+    )
+    rag_prompt: Optional[str] = Field(
+        default=None,
+        optional=True,
+        metadata={
+            "x_oap_ui_config": {
+                "type": "text",
+                "description": "Any additional instructions to pass along to the Agent regarding the RAG tools that are available to it."
             }
         }
     )

@@ -366,7 +366,7 @@ async def researcher(state: ResearcherState, config: RunnableConfig) -> Command[
     """Individual researcher that conducts focused research on specific topics.
     
     This researcher is given a specific research topic by the supervisor and uses
-    available tools (search, think_tool, MCP tools) to gather comprehensive information.
+    available tools (search, think_tool, MCP tools, RAG tools) to gather comprehensive information.
     It can use think_tool for strategic planning between searches.
     
     Args:
@@ -380,12 +380,12 @@ async def researcher(state: ResearcherState, config: RunnableConfig) -> Command[
     configurable = Configuration.from_runnable_config(config)
     researcher_messages = state.get("researcher_messages", [])
     
-    # Get all available research tools (search, MCP, think_tool)
+    # Get all available research tools (search, MCP, think_tool, RAG)
     tools = await get_all_tools(config)
     if len(tools) == 0:
         raise ValueError(
             "No tools found to conduct research: Please configure either your "
-            "search API or add MCP tools to your configuration."
+            "search API or add MCP tools or RAG tools to your configuration."
         )
     
     # Step 2: Configure the researcher model with tools
@@ -399,6 +399,7 @@ async def researcher(state: ResearcherState, config: RunnableConfig) -> Command[
     # Prepare system prompt with MCP context if available
     researcher_prompt = research_system_prompt.format(
         mcp_prompt=configurable.mcp_prompt or "", 
+        rag_prompt=configurable.rag_prompt or "",
         date=get_today_str()
     )
     
@@ -439,7 +440,8 @@ async def researcher_tools(state: ResearcherState, config: RunnableConfig) -> Co
     1. think_tool - Strategic reflection that continues the research conversation
     2. Search tools (tavily_search, web_search) - Information gathering
     3. MCP tools - External tool integrations
-    4. ResearchComplete - Signals completion of individual research task
+    4. RAG tools - Access to indexed reference materials
+    5. ResearchComplete - Signals completion of individual research task
     
     Args:
         state: Current researcher state with messages and iteration count
