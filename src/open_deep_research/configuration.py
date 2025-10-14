@@ -35,6 +35,20 @@ class MCPConfig(BaseModel):
     )
     """Whether the MCP server requires authentication"""
 
+class RagConfig(BaseModel):
+    """Configuration for RAG (Retrieval Augmented Generation) integration."""
+    
+    rag_url: Optional[str] = Field(
+        default=None,
+        optional=True,
+    )
+    """The URL of the LangConnect RAG server"""
+    collections: Optional[List[str]] = Field(
+        default=None,
+        optional=True,
+    )
+    """The collection IDs to make available for retrieval"""
+
 class Configuration(BaseModel):
     """Main configuration class for the Deep Research agent."""
     
@@ -228,6 +242,17 @@ class Configuration(BaseModel):
             "x_oap_ui_config": {
                 "type": "text",
                 "description": "Any additional instructions to pass along to the Agent regarding the MCP tools that are available to it."
+            }
+        }
+    )
+    # RAG server configuration
+    rag: Optional[RagConfig] = Field(
+        default=None,
+        optional=True,
+        metadata={
+            "x_oap_ui_config": {
+                "type": "rag",
+                "description": "RAG server configuration for accessing indexed reference materials"
             }
         }
     )

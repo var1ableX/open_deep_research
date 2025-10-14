@@ -31,6 +31,7 @@ from tavily import AsyncTavilyClient
 
 from open_deep_research.configuration import Configuration, SearchAPI
 from open_deep_research.prompts import summarize_webpage_prompt
+from open_deep_research.rag_utils import create_rag_tool
 from open_deep_research.state import ResearchComplete, Summary
 
 ##########################
@@ -593,6 +594,21 @@ async def get_all_tools(config: RunnableConfig):
     # Add MCP tools if configured
     mcp_tools = await load_mcp_tools(config, existing_tool_names)
     tools.extend(mcp_tools)
+    
+    # Add RAG tools if configured
+    supabase_token = config.get("configurable", {}).get("x-supabase-access-token")
+    if configurable.rag and configurable.rag.rag_url and configurable.rag.collections and supabase_token:
+        for collection_id in configurable.rag.collections:
+            try:
+                rag_tool = await create_rag_tool(
+                    configurable.rag.rag_url,
+                    collection_id,
+                    supabase_token
+                )
+                tools.append(rag_tool)
+            except Exception as e:
+                # Log but don't fail if RAG tool creation fails
+                logging.warning(f"Failed to create RAG tool for collection {collection_id}: {e}")
     
     return tools
 
