@@ -1,6 +1,7 @@
 """Utility functions for RAG (Retrieval Augmented Generation) integration."""
 
 import re
+import logging
 from typing import Annotated
 
 import aiohttp
@@ -49,6 +50,13 @@ async def create_rag_tool(rag_url: str, collection_id: str, access_token: str):
         else:
             collection_description = f"Search your collection of documents for results semantically similar to the input query. Collection description: {raw_description}"
 
+        logging.info(f"========= RAG COLLECTION CONFIGURATION ==========")
+        logging.info(f"RAG collection configuration - rag_url: {rag_url}, "
+                 f"collection_id: {collection_id}, "
+                 f"access_token: {access_token}, "
+                 f"collection_name: {collection_name}, "
+                 f"collection_description: {collection_description}")
+        logging.info(f"========= RAG COLLECTION CONFIGURATION END ==========")
         @tool(name_or_callable=collection_name, description=collection_description)
         async def get_documents(
             query: Annotated[str, "The search query to find relevant documents"],
