@@ -45,7 +45,9 @@ class NumberedSection(BaseModel):
     title: str
     subtitle: Optional[str] = None
     mitre_id: Optional[str] = None
-    content: List[Union['ContentBlock', 'NumberedSection']] = Field(default_factory=list)
+    # SIMPLIFIED: A numbered section contains simple text or list items, not other complex blocks.
+    # This breaks the most complex recursive loop in the schema.
+    content: List[Union[TextWithCitations, ListItem]] = Field(default_factory=list)
 
 class ContentBlock(BaseModel):
     """Individual content block within a section."""
@@ -58,8 +60,6 @@ class ContentBlock(BaseModel):
         NumberedSection
     ]
     formatting: Dict[str, Any] = Field(default_factory=dict)
-
-NumberedSection.update_forward_refs(ContentBlock=ContentBlock)
 
 class Section(BaseModel):
     """Hierarchical section structure."""
