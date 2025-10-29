@@ -1,5 +1,5 @@
-```Python
-from typing import List, Union, Dict, Any, Optional, Literal
+```python
+from typing import List, Union, Dict, Any, Optional, Literal, ForwardRef
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -25,6 +25,20 @@ class DefinitionItem(BaseModel):
     key: str
     value: TextWithCitations
 
+class TimelineEvent(BaseModel):
+    """A single event in a timeline."""
+    date: str
+    description: TextWithCitations
+
+ListItem = ForwardRef('ListItem')
+
+class ListItem(BaseModel):
+    """An item in a list, which can contain a nested list."""
+    content: TextWithCitations
+    children: Optional[List[ListItem]] = None
+
+ListItem.update_forward_refs()
+
 class NumberedSection(BaseModel):
     """Numbered sections like '1. Initial Access'."""
     number: int
@@ -38,11 +52,14 @@ class ContentBlock(BaseModel):
     type: ContentType
     value: Union[
         TextWithCitations,
-        List[TextWithCitations], 
+        List[ListItem], 
         List[DefinitionItem],
+        List[TimelineEvent],
         NumberedSection
     ]
     formatting: Dict[str, Any] = Field(default_factory=dict)
+
+NumberedSection.update_forward_refs(ContentBlock=ContentBlock)
 
 class Section(BaseModel):
     """Hierarchical section structure."""
@@ -51,12 +68,20 @@ class Section(BaseModel):
     hierarchy_level: int = 1
     content: List[Union['Section', ContentBlock]] = Field(default_factory=list)
 
+Section.update_forward_refs(ContentBlock=ContentBlock)
+
+class Source(BaseModel):
+    """A single cited source."""
+    id: int
+    url: str
+    description: str
+
 class ResearchReportJSON(BaseModel):
     """Complete structured research report."""
     
     title: str
     sections: List[Section] = Field(default_factory=list)
-    sources: List[Dict[str, Any]] = Field(default_factory=list)
+    sources: List[Source] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
     generated_at: str
     language: str = "en"
