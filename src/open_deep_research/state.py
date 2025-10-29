@@ -6,6 +6,7 @@ from typing import Annotated, Optional
 from langchain_core.messages import MessageLikeRepresentation
 from langgraph.graph import MessagesState
 from pydantic import BaseModel, Field
+#from pydantic.types import Json
 from typing_extensions import TypedDict
 
 
@@ -38,6 +39,13 @@ class ClarifyWithUser(BaseModel):
     )
     verification: str = Field(
         description="Verify message that we will start research after the user has provided the necessary information.",
+    )
+
+class ResearchJSONOutput(BaseModel):
+    """Model for research output in JSON format."""
+    
+    json_output: str = Field(
+        description="The research output in JSON format.",
     )
 
 class ResearchQuestion(BaseModel):
