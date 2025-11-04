@@ -285,6 +285,7 @@ Make sure that your sections are cohesive, and make sense for the reader.
 For each section of the report, do the following:
 - Use simple, clear language
 - Use ## for section title (Markdown format) for each section of the report
+- Section titles should be concise and factual. Extract or create titles that directly describe the content, not explanatory descriptions. Avoid mentioning frameworks, standards, or methodologies in titles (e.g., use "Attack Chain" not "Attack Chain Mapped to MITRE ATT&CK", use "Controls" not "Tactical Defense Recommendations (NIST CSF v2 Controls)").
 - Do NOT ever refer to yourself as the writer of the report. This should be a professional report without any self-referential language. 
 - Do not say what you are doing in the report. Just write the report without any commentary from yourself.
 - Each section should be as long as necessary to deeply answer the question with the information you have gathered. It is expected that sections will be fairly long and verbose. You are writing a deep research report, and users will expect a thorough answer.
@@ -388,12 +389,16 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
 2.  **`DefinitionListComponent`**:
     *   This is a **specialized** tool.
     *   You MUST use this block **only** when you identify a section that is semantically a profile or a list of key-value definitions. A clear signal for this is a list of items where each item starts with a bolded term followed by a colon (e.g., "**Origin and Attribution**: ...").
-    *   Extract the section title and the list of key-value pairs into the `props`.
+    *   Extract the section title from the document. The title should be concise and factual - extract the actual section heading, not create an explanatory description. Avoid mentioning frameworks or standards in the title (e.g., use "Controls" not "Tactical Defense Recommendations (NIST CSF v2 Controls)").
+    *   For `item_key_display_name`: Use a brief, general label for the key column header. Prefer concise names like "Ref", "ID", "Key", or "Field". Avoid overly specific names like "NIST CSF v2.0 Reference Id" - use "Ref" instead. Keep it reusable and general.
+    *   For `item_value_display_name`: Use a brief, general label for the value column header. Default to "Description" or similar succinct terms like "Value" or "Details" that represent the content type. Avoid domain-specific or verbose names.
+    *   Extract the list of key-value pairs into the `items` field.
 
 3.  **`MitreAttackChainComponent`**:
     *   This is a **specialized** tool.
     *   You MUST use this block **only** for the section describing a numbered sequence of MITRE ATT&CK tactics.
-    *   Extract the overall title for the chain and then process each step, capturing:
+    *   Extract the overall title for the chain from the document. The title should be concise and factual - extract the actual section heading (e.g., "Attack Chain"), not create an explanatory description like "Attack Chain Mapped to MITRE ATT&CK". Avoid mentioning frameworks or standards in the title.
+    *   Process each step, capturing:
         - its date (if present)
         - its action; A description of the corresponding attack used by the threat actor in the story
         - its MITRE TACTIC; Tactic ID : Name of the tactic

@@ -40,16 +40,28 @@ class DefinitionListComponent(BaseModel):
     """
     type: Literal["definition_list_component"] = "definition_list_component"
     title: str = Field(..., description="The title for the definition list section.")
+    item_key_display_name: str = Field(..., description="The table column header label for the key column. Should be brief and general (e.g., 'Ref', 'ID', 'Key', 'Field'). Avoid overly specific or verbose names.")
+    item_value_display_name: str = Field(..., description="The table column header label for the value column. Should be brief and general (e.g., 'Description', 'Value', 'Details'). Avoid overly specific or verbose names.")
     items: List[DefinitionListItem] = Field(..., description="The list of key-value pairs.")
 
 # Block Type 3: A Custom Component for a MITRE ATT&CK Chain
 
+class MitreTactic(BaseModel):
+    """A MITRE ATT&CK tactic with ID and name."""
+    id: str = Field(..., description="The MITRE ATT&CK tactic ID (e.g., 'TA0001').")
+    name: str = Field(..., description="The name of the tactic (e.g., 'Initial Access').")
+
+class MitreTechnique(BaseModel):
+    """A MITRE ATT&CK technique with ID and name."""
+    id: str = Field(..., description="The MITRE ATT&CK technique ID (e.g., 'T1190').")
+    name: str = Field(..., description="The name of the technique (e.g., 'Exploit Public-Facing Application').")
+
 class MitreAttackStep(BaseModel):
     """A single step within a MITRE ATT&CK chain."""
-    number: int = Field(..., description="The step number in the attack sequence.")
-    title: str = Field(..., description="The title of the ATT&CK stage (e.g., 'Initial Access').")
-    mitre_id: Optional[str] = Field(None, description="The corresponding MITRE technique ID (e.g., 'T1190').")
-    description: str = Field(..., description="The description of the step, as a markdown string.")
+    date: Optional[str] = Field(None, description="The date of the attack step (if present).")
+    action: str = Field(..., description="A description of the corresponding attack used by the threat actor in the story.")
+    tactic: MitreTactic = Field(..., description="The MITRE ATT&CK tactic associated with this step.")
+    techniques: List[MitreTechnique] = Field(..., description="The MITRE ATT&CK techniques associated with this step.")
 
 class MitreAttackChainComponent(BaseModel):
     """
@@ -58,7 +70,7 @@ class MitreAttackChainComponent(BaseModel):
     """
     type: Literal["mitre_attack_chain_component"] = "mitre_attack_chain_component"
     title: str = Field(..., description="The title for the attack chain section (e.g., 'The Full Attack Chain').")
-    steps: List[MitreAttackStep] = Field(..., description="The sequential steps of the attack.")
+    attack_chain: List[MitreAttackStep] = Field(..., alias="attackChain", description="The sequential steps of the attack chain.")
 
 # The Top-Level Schema: The Document Itself
 
@@ -96,12 +108,21 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
 2.  **`DefinitionListComponent`**:
     *   This is a **specialized** tool.
     *   You MUST use this block **only** when you identify a section that is semantically a profile or a list of key-value definitions. A clear signal for this is a list of items where each item starts with a bolded term followed by a colon (e.g., "**Origin and Attribution**: ...").
-    *   Extract the section title and the list of key-value pairs into the `props`.
+    *   Extract the section title from the document. The title should be concise and factual - extract the actual section heading, not create an explanatory description. Avoid mentioning frameworks or standards in the title (e.g., use "Controls" not "Tactical Defense Recommendations (NIST CSF v2 Controls)").
+    *   For `item_key_display_name`: Use a brief, general label for the key column header. Prefer concise names like "Ref", "ID", "Key", or "Field". Avoid overly specific names like "NIST CSF v2.0 Reference Id" - use "Ref" instead. Keep it reusable and general.
+    *   For `item_value_display_name`: Use a brief, general label for the value column header. Default to "Description" or similar succinct terms like "Value" or "Details" that represent the content type. Avoid domain-specific or verbose names.
+    *   Extract the list of key-value pairs into the `items` field.
 
 3.  **`MitreAttackChainComponent`**:
     *   This is a **specialized** tool.
     *   You MUST use this block **only** for the section describing a numbered sequence of MITRE ATT&CK tactics.
-    *   Extract the overall title for the chain and then process each numbered step, capturing its number, title, MITRE ID (if present), and full description.
+    *   Extract the overall title for the chain from the document. The title should be concise and factual - extract the actual section heading (e.g., "Attack Chain"), not create an explanatory description like "Attack Chain Mapped to MITRE ATT&CK". Avoid mentioning frameworks or standards in the title.
+    *   Process each step, capturing:
+        - its date (if present)
+        - its action; A description of the corresponding attack used by the threat actor in the story
+        - its MITRE TACTIC; Tactic ID : Name of the tactic
+        - its MITRE TECHNIQUE; Technique ID : Name of the technique
+        - its full description
 
 ## Instructions:
 

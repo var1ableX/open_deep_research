@@ -35,16 +35,28 @@ class DefinitionListComponent(BaseModel):
     """
     type: Literal["definition_list_component"] = "definition_list_component"
     title: str = Field(..., description="The title for the definition list section.")
+    item_key_display_name: str = Field(..., description="The table column header label for the key column. Should be brief and general (e.g., 'Ref', 'ID', 'Key', 'Field'). Avoid overly specific or verbose names.")
+    item_value_display_name: str = Field(..., description="The table column header label for the value column. Should be brief and general (e.g., 'Description', 'Value', 'Details'). Avoid overly specific or verbose names.")
     items: List[DefinitionListItem] = Field(..., description="The list of key-value pairs.")
 
 # Block Type 3: A Custom Component for a MITRE ATT&CK Chain
 
+class MitreTactic(BaseModel):
+    """A MITRE ATT&CK tactic with ID and name."""
+    id: str = Field(..., description="The MITRE ATT&CK tactic ID (e.g., 'TA0001').")
+    name: str = Field(..., description="The name of the tactic (e.g., 'Initial Access').")
+
+class MitreTechnique(BaseModel):
+    """A MITRE ATT&CK technique with ID and name."""
+    id: str = Field(..., description="The MITRE ATT&CK technique ID (e.g., 'T1190').")
+    name: str = Field(..., description="The name of the technique (e.g., 'Exploit Public-Facing Application').")
+
 class MitreAttackStep(BaseModel):
     """A single step within a MITRE ATT&CK chain."""
-    number: int = Field(..., description="The step number in the attack sequence.")
-    title: str = Field(..., description="The title of the ATT&CK stage (e.g., 'Initial Access').")
-    mitre_id: Optional[str] = Field(None, description="The corresponding MITRE technique ID (e.g., 'T1190').")
-    description: str = Field(..., description="The description of the step, as a markdown string.")
+    date: Optional[str] = Field(None, description="The date of the attack step (if present).")
+    action: str = Field(..., description="A description of the corresponding attack used by the threat actor in the story.")
+    tactic: MitreTactic = Field(..., description="The MITRE ATT&CK tactic associated with this step.")
+    techniques: List[MitreTechnique] = Field(..., description="The MITRE ATT&CK techniques associated with this step.")
 
 class MitreAttackChainComponent(BaseModel):
     """
@@ -53,7 +65,7 @@ class MitreAttackChainComponent(BaseModel):
     """
     type: Literal["mitre_attack_chain_component"] = "mitre_attack_chain_component"
     title: str = Field(..., description="The title for the attack chain section (e.g., 'The Full Attack Chain').")
-    steps: List[MitreAttackStep] = Field(..., description="The sequential steps of the attack.")
+    attack_chain: List[MitreAttackStep] = Field(..., alias="attackChain", description="The sequential steps of the attack chain.")
 
 # The Top-Level Schema: The Document Itself
 
