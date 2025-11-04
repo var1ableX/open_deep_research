@@ -67,6 +67,23 @@ class MitreAttackChainComponent(BaseModel):
     title: str = Field(..., description="The title for the attack chain section (e.g., 'The Full Attack Chain').")
     attack_chain: List[MitreAttackStep] = Field(..., alias="attackChain", description="The sequential steps of the attack chain.")
 
+# Block Type 4: A Custom Component for Sources
+
+class SourceItem(BaseModel):
+    """A single source citation item."""
+    number: int = Field(..., description="The citation number (e.g., 1, 2, 3).")
+    title: str = Field(..., description="The source title or name (e.g., 'The Hacker News').")
+    url: str = Field(..., description="The source URL.")
+
+class SourcesComponent(BaseModel):
+    """
+    Represents a list of numbered source citations.
+    This will be rendered as a custom <Sources> component in MDX.
+    """
+    type: Literal["sources_component"] = "sources_component"
+    title: str = Field(..., description="The title for the sources section (typically 'Sources').")
+    sources: List[SourceItem] = Field(..., description="The list of numbered source citations.")
+
 # The Top-Level Schema: The Document Itself
 
 class MdxDocument(BaseModel):
@@ -74,7 +91,7 @@ class MdxDocument(BaseModel):
     The complete report, represented as a flat list of content and component blocks.
     """
     document_title: str = Field(..., description="The main title of the entire document.")
-    blocks: List[Union[MarkdownBlock, DefinitionListComponent, MitreAttackChainComponent]] = Field(
+    blocks: List[Union[MarkdownBlock, DefinitionListComponent, MitreAttackChainComponent, SourcesComponent]] = Field(
         ..., 
         description="The sequence of blocks that constitute the document."
     )

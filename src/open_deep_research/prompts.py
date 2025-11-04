@@ -426,6 +426,35 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
       ]
     }}
     ```
+
+4.  **`SourcesComponent`**:
+    *   This is a **specialized** tool.
+    *   You MUST use this block **only** when you encounter a "Sources" section (or similar section title) containing numbered source citations in the format `[1] Title: URL`.
+    *   Extract the section title from the document. The title should be concise and factual - typically "Sources" but extract the actual section heading if it differs.
+    *   Parse each source entry from the markdown format:
+        - Extract the citation number from the brackets (e.g., `[1]` → number: 1)
+        - Extract the source title/name (the text before the colon, e.g., "The Hacker News")
+        - Extract the URL (the text after the colon)
+    *   Present the sources in the following format:
+    ```json
+    {{
+      "title": "Sources",
+      "sources": [
+        {{
+          "number": 1,
+          "title": "The Hacker News",
+          "url": "https://thehackernews.com/2025/11/malicious-vsx-extension-sleepyduck-uses.html"
+        }},
+        {{
+          "number": 2,
+          "title": "Secure Annex Blog",
+          "url": "https://secureannex.com/blog/sleepyduck-malware/"
+        }}
+        // more sources here
+      ]
+    }}
+    ```
+
 ## Instructions:
 
 1.  Read the entire input article to understand its structure.
