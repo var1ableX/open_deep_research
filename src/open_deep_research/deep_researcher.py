@@ -26,8 +26,10 @@ from open_deep_research.prompts import (
     final_report_generation_prompt,
     lead_researcher_prompt,
     research_system_prompt,
+    structure_report_mdx_prompt,
     transform_messages_into_research_topic_prompt,
 )
+from open_deep_research.schemas import MdxDocument
 from open_deep_research.state import (
     AgentInputState,
     AgentState,
@@ -698,6 +700,53 @@ async def final_report_generation(state: AgentState, config: RunnableConfig):
         **cleared_state
     }
 
+
+async def structure_report_mdx(state: AgentState, config: RunnableConfig):
+    """Transform the final markdown report into a structured MDX-compatible JSON object.
+    
+    This function takes the generated markdown report and uses a model with structured output
+    to convert it into a JSON object conforming to the MdxDocument schema.
+    
+    Args:
+        state: Agent state containing the final markdown report
+        config: Runtime configuration with model settings
+        
+    Returns:
+        Dictionary containing the structured JSON report
+    """
+    # Step 1: Configure the structuring model
+    configurable = Configuration.from_runnable_config(config)
+    structuring_model_config = {
+        "model": configurable.final_report_model,  # Reuse the same model as the writer
+        "max_tokens": configurable.final_report_model_max_tokens,
+        "api_key": get_api_key_for_model(configurable.final_report_model, config),
+        "tags": ["langsmith:nostream"]
+    }
+
+    structuring_model = (
+        configurable_model
+        .with_structured_output(MdxDocument)
+        .with_retry(stop_after_attempt=configurable.max_structured_output_retries)
+        .with_config(structuring_model_config)
+    )
+
+    # Step 2: Prepare the prompt and invoke the model
+    prompt_content = structure_report_mdx_prompt.format(
+        article_text=state.get("final_report", "")
+    )
+    
+    try:
+        response = await structuring_model.ainvoke([HumanMessage(content=prompt_content)])
+        # Pydantic models need to be converted to dicts for state serialization
+        json_report = response.dict()
+    except Exception as e:
+        # In case of failure, still end the graph gracefully
+        json_report = {"error": f"Failed to structure report: {e}"}
+
+    # Step 3: Return the structured report to be merged into the final state
+    return {"json_report": json_report}
+
+
 # Main Deep Researcher Graph Construction
 # Creates the complete deep research workflow from user input to final report
 deep_researcher_builder = StateGraph(
@@ -711,11 +760,13 @@ deep_researcher_builder.add_node("clarify_with_user", clarify_with_user)        
 deep_researcher_builder.add_node("write_research_brief", write_research_brief)     # Research planning phase
 deep_researcher_builder.add_node("research_supervisor", supervisor_subgraph)       # Research execution phase
 deep_researcher_builder.add_node("final_report_generation", final_report_generation)  # Report generation phase
+deep_researcher_builder.add_node("structure_report_mdx", structure_report_mdx) # Report structuring phase
 
 # Define main workflow edges for sequential execution
 deep_researcher_builder.add_edge(START, "clarify_with_user")                       # Entry point
 deep_researcher_builder.add_edge("research_supervisor", "final_report_generation") # Research to report
-deep_researcher_builder.add_edge("final_report_generation", END)                   # Final exit point
+deep_researcher_builder.add_edge("final_report_generation", "structure_report_mdx") # Report to structuring
+deep_researcher_builder.add_edge("structure_report_mdx", END)                   # Final exit point
 
 # Compile the complete deep researcher workflow
 deep_researcher = deep_researcher_builder.compile()

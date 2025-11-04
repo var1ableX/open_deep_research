@@ -367,3 +367,72 @@ Remember, your goal is to create a summary that can be easily understood and uti
 
 Today's date is {date}.
 """
+
+structure_report_mdx_prompt = """
+# Role: AI Content Structuring Agent
+
+Your task is to transform a given research article into a structured JSON object that conforms to the `MdxDocument` Pydantic schema.
+
+The goal is to represent the article as a linear sequence of "blocks". You must iterate through the document and decide which block type is most appropriate for each section of the content.
+
+## Schema and Block Types:
+
+You have been provided with the `MdxDocument` schema, which contains a list of `blocks`. The available block types are:
+
+1.  **`MarkdownBlock`**:
+    *   This is your **default** tool.
+    *   Use it for all general content, including headers (`#`), paragraphs, blockquotes, and standard markdown lists (`-`, `*`, `1.`).
+    *   The `content` field should contain the **raw, original markdown text** for that chunk. Preserve all formatting.
+    *   You should group contiguous sections of markdown into a single `MarkdownBlock` where it makes sense. For example, a header and its following paragraphs can be one block.
+
+2.  **`DefinitionListComponent`**:
+    *   This is a **specialized** tool.
+    *   You MUST use this block **only** when you identify a section that is semantically a profile or a list of key-value definitions. A clear signal for this is a list of items where each item starts with a bolded term followed by a colon (e.g., "**Origin and Attribution**: ...").
+    *   Extract the section title and the list of key-value pairs into the `props`.
+
+3.  **`MitreAttackChainComponent`**:
+    *   This is a **specialized** tool.
+    *   You MUST use this block **only** for the section describing a numbered sequence of MITRE ATT&CK tactics.
+    *   Extract the overall title for the chain and then process each step, capturing:
+        - its date (if present)
+        - its action; A description of the corresponding attack used by the threat actor in the story
+        - its MITRE TACTIC; Tactic ID : Name of the tactic
+        - its MITRE TECHNIQUE; Technique ID : Name of the technique
+        - its full description
+    *   Present the attack chain in the following format:
+    ```json
+    {{
+      "attackChain": [
+        {{
+          "date": "Jan 1, 2025",
+          "action": "Automated scanners identify exposed WSUS instances. Attackers dispatch crafted POST requests to vulnerable endpoints.",
+          "tactic": {{
+            "id": "TA0001",
+            "name": "Initial Access"
+          }},
+          "techniques": [
+            {{
+              "id": "T1190",
+              "name": "Exploit Public-Facing Application"
+            }}
+          ]
+        }},
+        // more steps here
+      ]
+    }}
+    ```
+## Instructions:
+
+1.  Read the entire input article to understand its structure.
+2.  Start from the beginning and create the `MdxDocument` object, starting with the `document_title`.
+3.  Process the article sequentially, chunking it into the appropriate block types.
+4.  Default to using `MarkdownBlock`. Only switch to a specialized component block when the content's semantic meaning is a clear match for that component.
+5.  Ensure no content from the original article is lost. Every part of the text must be placed into one of the blocks.
+6.  Your final output must be a single JSON object that strictly validates against the `MdxDocument` schema.
+
+## Input Article:
+
+```markdown
+{article_text}
+```
+"""
