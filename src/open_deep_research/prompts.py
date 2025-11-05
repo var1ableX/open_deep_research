@@ -386,7 +386,71 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
     *   The `content` field should contain the **raw, original markdown text** for that chunk. Preserve all formatting.
     *   You should group contiguous sections of markdown into a single `MarkdownBlock` where it makes sense. For example, a header and its following paragraphs can be one block.
 
-2.  **`DefinitionListComponent`**:
+2.  **`SectionBlock`**:
+    *   This is a **semantic** tool for representing document structure.
+    *   You MUST use this block for ANY section that has a markdown heading (# through ######).
+    *   **CRITICAL RULE**: Every heading at ANY level (##, ###, ####, etc.) creates a NEW `SectionBlock`.
+    *   Extract the heading level by counting the number of # symbols (1-6).
+    *   Extract the heading text WITHOUT the # symbols or any trailing #.
+    *   The `content` field contains ONLY the text/paragraphs/lists that follow the heading, EXCLUDING any subsequent headings.
+    *   The `content` field should NEVER contain markdown headings (no #, ##, ###, etc.) - those become separate blocks.
+    *   If a heading has no content before the next heading, use an empty string for `content`.
+    
+    **Complete Example:** For this markdown input:
+    ```markdown
+    ## Background
+    
+    The incident began in early 2025.
+    
+    ### Attack Vector
+    
+    Malicious code was injected.
+    
+    ### Impact Assessment
+    
+    Over 10,000 systems affected.
+    
+    ## Recommendations
+    
+    Implement controls.
+    ```
+    
+    You would create FOUR separate `SectionBlock` entries:
+    ```json
+    [
+      {{
+        "type": "section_block",
+        "level": 2,
+        "title": "Background",
+        "content": "The incident began in early 2025."
+      }},
+      {{
+        "type": "section_block",
+        "level": 3,
+        "title": "Attack Vector",
+        "content": "Malicious code was injected."
+      }},
+      {{
+        "type": "section_block",
+        "level": 3,
+        "title": "Impact Assessment",
+        "content": "Over 10,000 systems affected."
+      }},
+      {{
+        "type": "section_block",
+        "level": 2,
+        "title": "Recommendations",
+        "content": "Implement controls."
+      }}
+    ]
+    ```
+    
+    **Key Points:**
+    - Each heading becomes its own block, regardless of level
+    - Content NEVER includes headings - only text, lists, images, tables
+    - This provides maximum granularity for frontend section-level styling
+
+3.  **`DefinitionListComponent`**:
     *   This is a **specialized** tool.
     *   You MUST use this block **only** when you identify a section that is semantically a profile or a list of key-value definitions. A clear signal for this is a list of items where each item starts with a bolded term followed by a colon (e.g., "**Origin and Attribution**: ...").
     *   Extract the section title from the document. The title should be concise and factual - extract the actual section heading, not create an explanatory description. Avoid mentioning frameworks or standards in the title (e.g., use "Controls" not "Tactical Defense Recommendations (NIST CSF v2 Controls)").
@@ -394,7 +458,7 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
     *   For `item_value_display_name`: Use a brief, general label for the value column header. Default to "Description" or similar succinct terms like "Value" or "Details" that represent the content type. Avoid domain-specific or verbose names.
     *   Extract the list of key-value pairs into the `items` field.
 
-3.  **`MitreAttackChainComponent`**:
+4.  **`MitreAttackChainComponent`**:
     *   This is a **specialized** tool.
     *   You MUST use this block **only** for the section describing a numbered sequence of MITRE ATT&CK tactics.
     *   Extract the overall title for the chain from the document. The title should be concise and factual - extract the actual section heading (e.g., "Attack Chain"), not create an explanatory description like "Attack Chain Mapped to MITRE ATT&CK". Avoid mentioning frameworks or standards in the title.
@@ -427,7 +491,7 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
     }}
     ```
 
-4.  **`SourcesComponent`**:
+5.  **`SourcesComponent`**:
     *   This is a **specialized** tool.
     *   You MUST use this block **only** when you encounter a "Sources" section (or similar section title) containing numbered source citations in the format `[1] Title: URL`.
     *   Extract the section title from the document. The title should be concise and factual - typically "Sources" but extract the actual section heading if it differs.
@@ -460,7 +524,7 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
 1.  Read the entire input article to understand its structure.
 2.  Start from the beginning and create the `MdxDocument` object, starting with the `document_title`.
 3.  Process the article sequentially, chunking it into the appropriate block types.
-4.  Default to using `MarkdownBlock`. Only switch to a specialized component block when the content's semantic meaning is a clear match for that component.
+4.  Use `SectionBlock` for ANY content with a heading. Use `MarkdownBlock` only for content without any headings (e.g., standalone paragraphs between specialized components).
 5.  Ensure no content from the original article is lost. Every part of the text must be placed into one of the blocks.
 6.  Your final output must be a single JSON object that strictly validates against the `MdxDocument` schema.
 

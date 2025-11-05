@@ -11,6 +11,19 @@ class MarkdownBlock(BaseModel):
     type: Literal["markdown_block"] = "markdown_block"
     content: str = Field(..., description="The raw markdown content for the block.")
 
+# Block Type 1.5: Semantic Section with Explicit Heading
+
+class SectionBlock(BaseModel):
+    """
+    Represents a document section with an explicit heading and content.
+    This allows granular control over section-level formatting and styling.
+    Use this for any content section that has a markdown heading (# through ######).
+    """
+    type: Literal["section_block"] = "section_block"
+    level: int = Field(..., description="Heading level (1-6, corresponding to h1-h6). Count the number of # symbols in the original markdown.")
+    title: str = Field(..., description="The section heading text WITHOUT the markdown # symbols.")
+    content: str = Field(..., description="The markdown content under this heading (excluding the heading itself). If a heading has no content before the next heading, use an empty string.")
+
 # Block Type 2: A Custom Component for Definition Lists
 #
 # NOTE: WHY USE A COMPONENT INSTEAD OF PLAIN MARKDOWN?
@@ -91,7 +104,7 @@ class MdxDocument(BaseModel):
     The complete report, represented as a flat list of content and component blocks.
     """
     document_title: str = Field(..., description="The main title of the entire document.")
-    blocks: List[Union[MarkdownBlock, DefinitionListComponent, MitreAttackChainComponent, SourcesComponent]] = Field(
+    blocks: List[Union[MarkdownBlock, SectionBlock, DefinitionListComponent, MitreAttackChainComponent, SourcesComponent]] = Field(
         ..., 
         description="The sequence of blocks that constitute the document."
     )
