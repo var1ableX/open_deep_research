@@ -371,30 +371,37 @@ Today's date is {date}.
 
 structure_report_mdx_prompt = """
 # Role: AI Content Structuring Agent
+Your task is to transform a given research article into a
+ structured JSON object that conforms to the 'MdxDocument`
+ Pydantic schema.
+The goal is to represent the article as a linear sequence
+ of "blocks".
+You must iterate through the document and
+ decide which block type is most appropriate for each
+ section of the content.
 
-Your task is to transform a given research article into a structured JSON object that conforms to the `MdxDocument` Pydantic schema.
-
-The goal is to represent the article as a linear sequence of "blocks". You must iterate through the document and decide which block type is most appropriate for each section of the content.
+## Global Processing Rules
+1.  **Prioritize Specificity:** Your primary goal is to find the **best** and **most specific** block for each piece of content.
+2.  **Choose Only One Block:** You MUST only choose **one** block type for any given piece of content. If a section of text could be processed in multiple ways (e.g., as a `SectionBlock` AND a `SourcesComponent`), you MUST choose the *most specific* component (in this case, `SourcesComponent`).
+3.  **No Content Duplication:** As a result of this rule, no single piece of content from the original article should appear in more than one block in the final JSON.
 
 ## Schema and Block Types:
 
 You have been provided with the `MdxDocument` schema, which contains a list of `blocks`. The available block types are:
 
 1.  **`MarkdownBlock`**:
-    *   This is your **default** tool.
-    *   Use it for all general content, including headers (`#`), paragraphs, blockquotes, and standard markdown lists (`-`, `*`, `1.`).
-    *   The `content` field should contain the **raw, original markdown text** for that chunk. Preserve all formatting.
-    *   You should group contiguous sections of markdown into a single `MarkdownBlock` where it makes sense. For example, a header and its following paragraphs can be one block.
+    * This is your **fallback** tool.
+    * Use it **only** for general content, such as paragraphs, blockquotes, or lists, that does **not** fall under a heading and is **not** part of a specialized component.
+    * **CRITICAL:** This block should **NEVER** contain headers (using `#` or setext `===`/`---` formats), as those are *exclusively* handled by `SectionBlock`.
+    * The `content` field should contain the **raw, original markdown text** for that chunk. Preserve all formatting, **including fenced code blocks (``` ... ```) verbatim.**
+    * You should group contiguous sections of markdown into a single `MarkdownBlock` where it makes sense. For example, a standalone paragraph, an image, or a list that appears *between* two specialized components (like between a `ControlsTableComponent` and a `MitreAttackChainComponent`) should be in its own `MarkdownBlock`.
 
 2.  **`SectionBlock`**:
-    *   This is a **semantic** tool for representing document structure.
-    *   You MUST use this block for ANY section that has a markdown heading (# through ######).
-    *   **CRITICAL RULE**: Every heading at ANY level (##, ###, ####, etc.) creates a NEW `SectionBlock`.
-    *   Extract the heading level by counting the number of # symbols (1-6).
-    *   Extract the heading text WITHOUT the # symbols or any trailing #.
-    *   The `content` field contains ONLY the text/paragraphs/lists that follow the heading, EXCLUDING any subsequent headings.
-    *   The `content` field should NEVER contain markdown headings (no #, ##, ###, etc.) - those become separate blocks.
-    *   If a heading has no content before the next heading, use an empty string for `content`.
+    * **CRITICAL RULE:** Use this block for **ANY** section introduced by a markdown heading (using `#` or setext `===`/`---` formats) to represent semantic document structure, **WITH ONE EXCEPTION:**
+    * **EXCEPTION:** If a heading and its content are a strong match for a specialized tool (**e.g., `ControlsTableComponent`**, **`MitreAttackChainComponent`**, **`SourcesComponent`**), you MUST use *only* that specialized component. **DO NOT** create a `SectionBlock` for that heading.
+    * **Processing Rules:**
+        * **Extract:** Get the heading level (1-6) and the text (without the # symbols).
+        * **Content:** The `content` field contains ONLY the text/paragraphs/lists that follow the heading, up to (and EXCLUDING) the next heading. If a heading has no content before the next heading, use an empty string for `content`.
     
     **Complete Example:** For this markdown input:
     ```markdown
@@ -444,30 +451,63 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
       }}
     ]
     ```
-    
-    **Key Points:**
-    - Each heading becomes its own block, regardless of level
-    - Content NEVER includes headings - only text, lists, images, tables
-    - This provides maximum granularity for frontend section-level styling
 
 3.  **`DefinitionListComponent`**:
-    *   This is a **specialized** tool.
-    *   You MUST use this block **only** when you identify a section that is semantically a profile or a list of key-value definitions. A clear signal for this is a list of items where each item starts with a bolded term followed by a colon (e.g., "**Origin and Attribution**: ...").
-    *   Extract the section title from the document. The title should be concise and factual - extract the actual section heading, not create an explanatory description. Avoid mentioning frameworks or standards in the title (e.g., use "Controls" not "Tactical Defense Recommendations (NIST CSF v2 Controls)").
-    *   For `item_key_display_name`: Use a brief, general label for the key column header. Prefer concise names like "Ref", "ID", "Key", or "Field". Avoid overly specific names like "NIST CSF v2.0 Reference Id" - use "Ref" instead. Keep it reusable and general.
-    *   For `item_value_display_name`: Use a brief, general label for the value column header. Default to "Description" or similar succinct terms like "Value" or "Details" that represent the content type. Avoid domain-specific or verbose names.
-    *   Extract the list of key-value pairs into the `items` field.
+    * **CRITICAL RULE:** Use this **specialized tool** *only* for sections that are semantically a profile, glossary, or list of key-value definitions.
+    * **Usage Conditions & Signals:**
+        * **Use for:** e.g. threat actor profiles, terminology definitions, attribute lists, or generic action items (that *do not* have framework codes).
+        * **Do NOT use for:** Security controls that map to a framework (like NIST, CIS, MITRE, etc.). Use `ControlsTableComponent` for those.
+        * **Clear Signal:** The content is a list where each item starts with a **bolded term followed by a colon** (e.g., "**Origin**: ...").
+    * **Processing Rules:**
+        * **`title`:** Extract the actual section heading. The title must be concise and factual (e.g., use "Controls" not "Tactical Defense Recommendations (NIST CSF v2 Controls)").
+        * **`item_key_display_name`:** Use a brief, general label (e.g., "Ref", "ID", "Key").
+        * **`item_value_display_name`:** Use a brief, general label (e.g., "Description", "Value").
+        * **`items`:** Extract all the key-value pairs into this list.
 
-4.  **`MitreAttackChainComponent`**:
-    *   This is a **specialized** tool.
-    *   You MUST use this block **only** for the section describing a numbered sequence of MITRE ATT&CK tactics.
-    *   Extract the overall title for the chain from the document. The title should be concise and factual - extract the actual section heading (e.g., "Attack Chain"), not create an explanatory description like "Attack Chain Mapped to MITRE ATT&CK". Avoid mentioning frameworks or standards in the title.
-    *   Process each step, capturing:
-        - its date (if present)
-        - its action; A description of the corresponding attack used by the threat actor in the story
-        - its MITRE TACTIC; Tactic ID : Name of the tactic
-        - its MITRE TECHNIQUE; Technique ID : Name of the technique
-        - its full description
+4.  **`ControlsTableComponent`**:
+    * **CRITICAL RULE:** Use this **specialized tool** *only* for sections containing security controls or recommendations that map to a security framework.
+    * **Usage Conditions & Signals:**
+        * **Clear Signal:** The content is a list where items contain **framework reference codes** (e.g., `PR.PS-02`, `ID.AM-01`, `CIS 5.1`, `TA0001`) alongside an **action title** and a **description**.
+        * **Do NOT use for:** Generic action items that *do not* have framework codes. Use `DefinitionListComponent` for those.
+    * **Processing Rules:**
+        * **`title`:** Extract the actual section heading (e.g., "Tactical Recommendations").
+        * **`framework`:** Extract the framework name if explicitly mentioned (e.g., "NIST CSF v2"). Leave as `null` if not specified.
+        * **`controls`:** For each item, extract the following:
+        * **`csf_references`**: A list of all framework codes. **Normalize all codes to uppercase** (e.g., `["PR.PS-02", "PR.PS-01"]`).
+        * **`action_title`**: The brief action or control name (e.g., "Patch Immediately").
+        * **`description`**: The full description text in markdown format.
+    *   Present the controls in the following format:
+    ```json
+    {{
+      "type": "controls_table_component",
+      "title": "Immediate Action Checklist",
+      "framework": "NIST CSF v2",
+      "controls": [
+        {{
+          "csf_references": ["PR.PS-02", "PR.PS-01"],
+          "action_title": "Patch Immediately",
+          "description": "Ensure software is maintained/updated and configuration management practices applied (covers routine & emergency patching and configuration hygiene)."
+        }},
+        {{
+          "csf_references": ["PR.AA-01", "PR.AA-05", "DE.CM-7"],
+          "action_title": "Rotate All Credentials",
+          "description": "Identities/credentials must be managed (issue/revoke/rotate) and least-privilege enforced; monitoring for unauthorized connections/authentication anomalies supports detection."
+        }}
+      ]
+    }}
+    ```
+
+5.  **`MitreAttackChainComponent`**:
+    * **CRITICAL RULE:** Use this **specialized tool** *only* for sections that describe an attack sequence using MITRE ATT&CK tactics and techniques.
+    * **Usage Conditions & Signals:**
+        * **Clear Signal:** The content is a list of steps, with each step explicitly mapping an **Action** to a **MITRE Tactic** (e.g., `TA0001: Initial Access`) and one or more **MITRE Techniques** (e.g., `T1195: Supply Chain Compromise`).
+    * **Processing Rules:**
+        * **`title`:** Extract the actual section heading (e.g., "Attack Chain"). The title must be concise and factual, not explanatory.
+        * **`attackChain`:** Process each step in the sequence into an object with the following fields:
+            * **`date`**: The date of the step, if provided. Leave as `null` if not.
+            * **`action`**: The full description of the attacker's action for that step.
+            * **`tactic`**: An object containing the tactic's ID and name. **Normalize the ID to uppercase** (e.g., `{{ "id": "TA0001", "name": "Initial Access" }}`).
+        * **`techniques`**: An *array* of objects, with each object containing a technique's ID and name. **Normalize all IDs to uppercase** (e.g., `[{{ "id": "T1195", "name": "Supply Chain Compromise" }}]`).
     *   Present the attack chain in the following format:
     ```json
     {{
@@ -491,14 +531,16 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
     }}
     ```
 
-5.  **`SourcesComponent`**:
-    *   This is a **specialized** tool.
-    *   You MUST use this block **only** when you encounter a "Sources" section (or similar section title) containing numbered source citations in the format `[1] Title: URL`.
-    *   Extract the section title from the document. The title should be concise and factual - typically "Sources" but extract the actual section heading if it differs.
-    *   Parse each source entry from the markdown format:
-        - Extract the citation number from the brackets (e.g., `[1]` → number: 1)
-        - Extract the source title/name (the text before the colon, e.g., "The Hacker News")
-        - Extract the URL (the text after the colon)
+6.  **`SourcesComponent`**:
+    * **CRITICAL RULE:** Use this **specialized tool** *only* for sections (e.g., "Sources") that contain a list of source citations.
+    * **Usage Conditions & Signals:**
+        * **Clear Signal:** The content is a list of standard markdown links, (e.g., `[1] [Article Title](https://example.com)` or `- [Article Title](https://example.com)`).
+    * **Processing Rules:**
+        * **`title`:** Extract the actual section heading (e.g., "Sources").
+        * **`sources`:** For each list item, parse the following:
+            * **`number`**: The citation number from the brackets. If no number is present, infer it sequentially starting from `1`.
+            * **`title`**: The link text (e.g., "Article Title").
+            * **`url`**: The link destination (e.g., "https://example.com").
     *   Present the sources in the following format:
     ```json
     {{
@@ -522,11 +564,12 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
 ## Instructions:
 
 1.  Read the entire input article to understand its structure.
-2.  Start from the beginning and create the `MdxDocument` object, starting with the `document_title`.
+2.  Start from the beginning and create the `MdxDocument` object. **Extract the `document_title` from the first Level 1 heading (e.g., `# Title`) in the article.**
 3.  Process the article sequentially, chunking it into the appropriate block types.
-4.  Use `SectionBlock` for ANY content with a heading. Use `MarkdownBlock` only for content without any headings (e.g., standalone paragraphs between specialized components).
-5.  Ensure no content from the original article is lost. Every part of the text must be placed into one of the blocks.
-6.  Your final output must be a single JSON object that strictly validates against the `MdxDocument` schema.
+4.  **Follow the Global Rules to select the single best block for each section.** Remember to prioritize specialized tools (like `SourcesComponent` or `ControlsTableComponent`) over general ones (`SectionBlock`).
+5.  Use `MarkdownBlock` *only* as a fallback for content (like standalone paragraphs) that does not have a heading and is not part of another component.
+6.  Ensure no content from the original article is lost. Every part of the text must be placed into one of the blocks.
+7.  Your final output must be a single JSON object that strictly validates against the `MdxDocument` schema.
 
 ## Input Article:
 

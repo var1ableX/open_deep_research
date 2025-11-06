@@ -52,6 +52,25 @@ class DefinitionListComponent(BaseModel):
     item_value_display_name: str = Field(..., description="The table column header label for the value column. Should be brief and general (e.g., 'Description', 'Value', 'Details'). Avoid overly specific or verbose names.")
     items: List[DefinitionListItem] = Field(..., description="The list of key-value pairs.")
 
+# Block Type 5: A Custom Component for Security Controls/Recommendations
+
+class ControlItem(BaseModel):
+    """A single security control or recommendation item."""
+    csf_references: List[str] = Field(..., description="List of framework control references (e.g., ['PR.PS-02', 'PR.PS-01', 'ID.AM-01']). Can include NIST CSF, CIS Controls, or other framework codes.")
+    action_title: str = Field(..., description="Brief action title using strong active verbs (e.g., 'Patch Immediately', 'Rotate All Credentials', 'Audit Extensions').")
+    description: str = Field(..., description="Detailed description of the control or action, as a markdown string.")
+
+class ControlsTableComponent(BaseModel):
+    """
+    Represents a table of security controls or tactical recommendations with framework mappings.
+    This will be rendered as a custom <ControlsTable> component in MDX with specialized 
+    styling for framework references, action titles, and descriptions.
+    """
+    type: Literal["controls_table_component"] = "controls_table_component"
+    title: str = Field(..., description="The title for the controls section (e.g., 'Tactical Defense Recommendations', 'Immediate Action Checklist').")
+    framework: Optional[str] = Field(None, description="The framework being referenced if explicitly mentioned (e.g., 'NIST CSF v2', 'CIS Controls v8'). Leave as null if not specified.")
+    controls: List[ControlItem] = Field(..., description="The list of security controls/recommendations.")
+
 # Block Type 3: A Custom Component for a MITRE ATT&CK Chain
 
 class MitreTactic(BaseModel):
@@ -104,7 +123,7 @@ class MdxDocument(BaseModel):
     The complete report, represented as a flat list of content and component blocks.
     """
     document_title: str = Field(..., description="The main title of the entire document.")
-    blocks: List[Union[MarkdownBlock, SectionBlock, DefinitionListComponent, MitreAttackChainComponent, SourcesComponent]] = Field(
+    blocks: List[Union[MarkdownBlock, SectionBlock, DefinitionListComponent, ControlsTableComponent, MitreAttackChainComponent, SourcesComponent]] = Field(
         ..., 
         description="The sequence of blocks that constitute the document."
     )
