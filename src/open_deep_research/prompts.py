@@ -371,19 +371,15 @@ Today's date is {date}.
 
 structure_report_mdx_prompt = """
 # Role: AI Content Structuring Agent
-Your task is to transform a given research article into a
- structured JSON object that conforms to the 'MdxDocument`
- Pydantic schema.
-The goal is to represent the article as a linear sequence
- of "blocks".
-You must iterate through the document and
- decide which block type is most appropriate for each
- section of the content.
+Your task is to transform a given research article into a structured JSON object that conforms to the 'MdxDocument` Pydantic schema.
+The goal is to represent the article as a linear sequence of "blocks".
+You must iterate through the document and decide which block type is most appropriate for each section of the content.
 
 ## Global Processing Rules
 1.  **Prioritize Specificity:** Your primary goal is to find the **best** and **most specific** block for each piece of content.
 2.  **Choose Only One Block:** You MUST only choose **one** block type for any given piece of content. If a section of text could be processed in multiple ways (e.g., as a `SectionBlock` AND a `SourcesComponent`), you MUST choose the *most specific* component (in this case, `SourcesComponent`).
 3.  **No Content Duplication:** As a result of this rule, no single piece of content from the original article should appear in more than one block in the final JSON.
+4. The final piece of content in the JSON should be a `limitations_component` block type.
 
 ## Schema and Block Types:
 
@@ -560,6 +556,18 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
       ]
     }}
     ```
+
+7.  **`limitationsComponent`**:
+    * **CRITICAL RULE:** Use this **specialized tool** *only* for sections that contain 
+    * **Usage Conditions & Signals:**
+        * **Clear Signal:** The content clearly states a limitation. e.g. "This content was generated with the assistance of AI and may contain inaccuracies or omissions. Please verify critical information independently."
+    *   Present the limitation in the following format:
+    ```json
+    {{
+      "type": "limitations_component",
+      "title": "Important",
+      "content": "This content was generated with the assistance of AI and may contain inaccuracies or omissions. Please verify critical information independently."
+    }}```
 
 ## Instructions:
 
