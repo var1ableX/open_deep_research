@@ -27,7 +27,7 @@ bluf_writer_base_prompt = """
         * **CORRECT:** "**Exposed organizations should consider** immediate containment..."
         * **INCORRECT (Fluff):** "**We suggest** organizations **in this situation** **consider** immediate containment..."
 
-    * **Principle 4: Lexicon Control (NEW).**
+    * **Principle 4: Lexicon Control.**
         Your word choice is precise and strong.
         * **Avoid Weak Modals:** Do not use "may be" or "might be." Prefer precise modal verbs that quantify uncertainty.
             * **CORRECT:** "**is likely**," "**presents a credible risk**."
@@ -50,14 +50,12 @@ bluf_writer_base_prompt = """
     3.  `so_what_block`
     4.  `whats_next_block`
 
-4.  **No Conceptual Redundancy (NEW).**
+4.  **No Conceptual Redundancy.**
     Each of the four output blocks (`bluf_block`, `now_what_block`, `so_what_block`, `whats_next_block`) must add **new, unique insight**. Do not repeat the same concepts or phrases across different blocks. For example, if the `bluf_block` states that the incident "poses a high risk," the `so_what_block` must not simply rephrase this; it must *expand* on it (e.g., "This risk manifests as a direct threat to intellectual property...").
 
 ## Output Schema and Block Definitions
 
-Your output object must conform to the `BlufDocument` schema, which contains four top-level keys. You must synthesize content for *all four* keys.
-
-The definitions for each block will be provided below.
+Definitions for each block:
 
 **1. `bluf_block`**
 
@@ -97,27 +95,9 @@ The definitions for each block will be provided below.
         * **Size Guardrail:** Groups should ideally contain 3-5 actions.
     4.  **Create Group Titles:** You MUST create concise, authoritative titles for these groups (e.g., "Immediate Containment," "Short-Term Remediation," "Strategic Enhancements"). These will be `group_title` fields.
     5.  **Synthesize Actions:** Paraphrase the relevant `control` descriptions into clear, direct actions. These will be the `action_items` array.
-    6.  **Synthesize Executive Summary (NEW):** After populating the `action_items` for a group, synthesize them into a single `executive_summary` string (1-2 concise sentences) that describes the high-level *goal* of that group's actions.
+    6.  **Synthesize Executive Summary:** After populating the `action_items` for a group, synthesize them into a single `executive_summary` string (1-2 concise sentences) that describes the high-level *goal* of that group's actions.
 * **Output Format Example:**
-    This block's output is structured to give you full rendering control. For example, if your target rendered output is:
-
-     **Exposed organizations should consider** the following actions, prioritized by urgency:
-     
-    * **Immediate Containment**
-    Immediate, org-wide uninstall of the malicious extension and blocking its network access to prevent further damage.
-       * Uninstall the "juan-bianco.solidity-vlang" extension from all environments.
-       * Block the primary C2 domain (sleepyduck[.]xyz) at the network firewall and monitor for related network calls.
-    
-    * **Short-Term Remediation**
-    Assume credentials have been compromised and perform a full rotation to evict the attacker from any established foothold.
-       * Initiate a full credential and secrets rotation for all development staff and associated systems.
-    
-    * **Long-Term Strategic Fixes**
-    Address the root cause by auditing all developer tools and hardening IDEs to prevent similar supply chain attacks.
-       * Conduct a full audit of all developer extensions and establish a formal 'allow-list' policy.
-       * Ensure all IDEs and underlying frameworks are fully patched.
-
-    ...then your JSON output for this block **MUST** be in the following format:
+    The JSON output for this block **MUST** be in the following format:
 
     ```json
     {
@@ -165,15 +145,7 @@ The definitions for each block will be provided below.
         * First, create a single `intro_sentence` to frame the list (e.g., "This incident is significant as...").
         * Second, create an `implications` array. For each implication, synthesize a `title` (the core risk) and a `description` (the 1-sentence explanation).
 * **Output Format Example:**
-    This block's output is structured for full rendering control. For example, if your target rendered output is:
-
-    This incident is significant as it highlights three specific risks:
-    
-    * **High Risk to Intellectual Property:** The malware gives attackers direct, remote access to sensitive assets, including source code and CI/CD pipelines.
-    * **Novel, Resilient Threat:** The attackers are using an immutable Ethereum smart contract as a backup command-and-control (C2) channel, making it highly resistant to conventional takedowns.
-    * **Critical Supply Chain Failure:** This attack exploited the "open trust" model of development tool repositories, demonstrating a critical gap in the software supply chain.
-
-    ...then your JSON output for this block **MUST** be in the following format:
+    The JSON output for this block **MUST** be in the following format:
 
     ```json
     {
@@ -218,20 +190,8 @@ The definitions for each block will be provided below.
             * A `description` that follows a specific pattern:
                 * **(1) The Signal:** What to monitor (e.g., "Monitor for an official statement...").
                 * **(2) The Rationale:** Why it matters (e.g., "...as this will dictate the timeline for a permanent patch.").
-    4.  **Apply Advisory Tone:** All content must adhere to the "Advisory Persona" in the Global Processing Rules.
 * **Output Format Example:**
-    This block's output is structured for full rendering control. For example, if your target rendered output is:
-
-    The following are key indicators to watch over the next 24-72 hours:
-    
-    * **Vendor & Community Response**
-      Monitor for an official statement or patch from the Open VSX marketplace, as this will dictate the timeline for a permanent, secure fix.
-    * **C2 Infrastructure Activity**
-      Monitoring of the Ethereum smart contract for new C2 instructions is advisable, as this would signal an active, ongoing campaign.
-    * **Copycat Attacks**
-      There is a moderate probability that other threat actors will adopt this 'blockchain C2' technique in similar supply chain attacks.
-
-    ...then your JSON output for this block **MUST** be in the following format:
+    The JSON output for this block **MUST** be in the following format:
 
     ```json
     {
