@@ -116,6 +116,17 @@ class SourcesComponent(BaseModel):
     title: str = Field(..., description="The title for the sources section (typically 'Sources').")
     sources: List[SourceItem] = Field(..., description="The list of numbered source citations.")
 
+# Block Type 6: A Custom Component for Limitations and Disclaimers
+
+class LimitationsComponent(BaseModel):
+    """
+    A component for AI-generated content disclaimers and research limitations.
+    This must appear as the final block in the document.
+    """
+    type: Literal["limitations_component"] = "limitations_component"
+    title: str = Field(..., description="The title for the limitations section (e.g., 'Important', 'Limitations').")
+    content: str = Field(..., description="The disclaimer or limitations content as a markdown string.")
+
 # The Top-Level Schema: The Document Itself
 
 class MdxDocument(BaseModel):
@@ -123,7 +134,7 @@ class MdxDocument(BaseModel):
     The complete report, represented as a flat list of content and component blocks.
     """
     document_title: str = Field(..., description="The main title of the entire document.")
-    blocks: List[Union[MarkdownBlock, SectionBlock, DefinitionListComponent, ControlsTableComponent, MitreAttackChainComponent, SourcesComponent]] = Field(
+    blocks: List[Union[MarkdownBlock, SectionBlock, DefinitionListComponent, ControlsTableComponent, MitreAttackChainComponent, SourcesComponent, LimitationsComponent]] = Field(
         ..., 
         description="The sequence of blocks that constitute the document."
     )

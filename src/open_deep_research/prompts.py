@@ -379,7 +379,7 @@ You must iterate through the document and decide which block type is most approp
 1.  **Prioritize Specificity:** Your primary goal is to find the **best** and **most specific** block for each piece of content.
 2.  **Choose Only One Block:** You MUST only choose **one** block type for any given piece of content. If a section of text could be processed in multiple ways (e.g., as a `SectionBlock` AND a `SourcesComponent`), you MUST choose the *most specific* component (in this case, `SourcesComponent`).
 3.  **No Content Duplication:** As a result of this rule, no single piece of content from the original article should appear in more than one block in the final JSON.
-4. The final piece of content in the JSON should be a `limitations_component` block type.
+4. **MANDATORY:** The final block in your output MUST be a `limitations_component`, regardless of whether limitation content appears in the input markdown. If limitation content is not present, synthesize a standard disclaimer with title='Important' and content='This content was generated with the assistance of AI and may contain inaccuracies or omissions. Please verify critical information independently.'
 
 ## Schema and Block Types:
 
@@ -394,7 +394,7 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
 
 2.  **`SectionBlock`**:
     * **CRITICAL RULE:** Use this block for **ANY** section introduced by a markdown heading (using `#` or setext `===`/`---` formats) to represent semantic document structure, **WITH ONE EXCEPTION:**
-    * **EXCEPTION:** If a heading and its content are a strong match for a specialized tool (**e.g., `ControlsTableComponent`**, **`MitreAttackChainComponent`**, **`SourcesComponent`**), you MUST use *only* that specialized component. **DO NOT** create a `SectionBlock` for that heading.
+    * **EXCEPTION:** If a heading and its content are a strong match for a specialized tool (**e.g., `ControlsTableComponent`**, **`MitreAttackChainComponent`**, **`SourcesComponent`**, **`limitationsComponent`**), you MUST use *only* that specialized component. **DO NOT** create a `SectionBlock` for that heading.
     * **Processing Rules:**
         * **Extract:** Get the heading level (1-6) and the text (without the # symbols).
         * **Content:** The `content` field contains ONLY the text/paragraphs/lists that follow the heading, up to (and EXCLUDING) the next heading. If a heading has no content before the next heading, use an empty string for `content`.
@@ -558,9 +558,9 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
     ```
 
 7.  **`limitationsComponent`**:
-    * **CRITICAL RULE:** Use this **specialized tool** *only* for sections that contain 
+    * **CRITICAL RULE:** Use this **specialized tool** for AI-generated content disclaimers and research limitations. **Per Global Rule #4, this component MUST appear as the final block in your output.**
     * **Usage Conditions & Signals:**
-        * **Clear Signal:** The content clearly states a limitation. e.g. "This content was generated with the assistance of AI and may contain inaccuracies or omissions. Please verify critical information independently."
+        * **MANDATORY FINAL BLOCK:** You MUST add a `limitations_component` as the final block in your JSON output. If limitation content exists in the markdown (rare), extract it. Otherwise (normal case), use the standard disclaimer text specified in Global Rule #4.
     *   Present the limitation in the following format:
     ```json
     {{
@@ -568,6 +568,7 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
       "title": "Important",
       "content": "This content was generated with the assistance of AI and may contain inaccuracies or omissions. Please verify critical information independently."
     }}```
+    * When limitation content is not present in the markdown (normal case), use the title and content specified in Global Rule #4.
 
 ## Instructions:
 
@@ -577,7 +578,8 @@ You have been provided with the `MdxDocument` schema, which contains a list of `
 4.  **Follow the Global Rules to select the single best block for each section.** Remember to prioritize specialized tools (like `SourcesComponent` or `ControlsTableComponent`) over general ones (`SectionBlock`).
 5.  Use `MarkdownBlock` *only* as a fallback for content (like standalone paragraphs) that does not have a heading and is not part of another component.
 6.  Ensure no content from the original article is lost. Every part of the text must be placed into one of the blocks.
-7.  Your final output must be a single JSON object that strictly validates against the `MdxDocument` schema.
+7.  **Add limitations_component as final block:** Per Global Rule #4, you MUST end your blocks array with a `limitations_component`. Use the standard disclaimer specified in Global Rule #4 if no limitation content was found in the article.
+8.  Your final output must be a single JSON object that strictly validates against the `MdxDocument` schema.
 
 ## Input Article:
 
