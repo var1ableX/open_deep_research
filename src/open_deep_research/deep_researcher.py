@@ -29,6 +29,7 @@ from open_deep_research.prompts import (
     structure_report_mdx_prompt,
     transform_messages_into_research_topic_prompt,
 )
+from open_deep_research.bluf_writer import bluf_writer
 from open_deep_research.schemas import MdxDocument
 from open_deep_research.state import (
     AgentInputState,
@@ -51,6 +52,7 @@ from open_deep_research.utils import (
     is_token_limit_exceeded,
     openai_websearch_called,
     remove_up_to_last_ai_message,
+    save_consolidated_report,
     think_tool,
 )
 
@@ -761,12 +763,16 @@ deep_researcher_builder.add_node("write_research_brief", write_research_brief)  
 deep_researcher_builder.add_node("research_supervisor", supervisor_subgraph)       # Research execution phase
 deep_researcher_builder.add_node("final_report_generation", final_report_generation)  # Report generation phase
 deep_researcher_builder.add_node("structure_report_mdx", structure_report_mdx) # Report structuring phase
+deep_researcher_builder.add_node("bluf_writer", bluf_writer)                        # BLUF executive summary generation
+deep_researcher_builder.add_node("save_output", save_consolidated_report)          # Save consolidated report
 
 # Define main workflow edges for sequential execution
 deep_researcher_builder.add_edge(START, "clarify_with_user")                       # Entry point
 deep_researcher_builder.add_edge("research_supervisor", "final_report_generation") # Research to report
 deep_researcher_builder.add_edge("final_report_generation", "structure_report_mdx") # Report to structuring
-deep_researcher_builder.add_edge("structure_report_mdx", END)                   # Final exit point
+deep_researcher_builder.add_edge("structure_report_mdx", "bluf_writer")            # MDX structuring to BLUF writer
+deep_researcher_builder.add_edge("bluf_writer", "save_output")                    # BLUF writer to save output
+deep_researcher_builder.add_edge("save_output", END)                              # Final exit point
 
 # Compile the complete deep researcher workflow
 deep_researcher = deep_researcher_builder.compile()

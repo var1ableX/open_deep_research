@@ -79,6 +79,7 @@ class AgentState(MessagesState):
     notes: Annotated[list[str], override_reducer] = []
     final_report: str
     json_report: Dict[str, Any]
+    bluf_report: Optional[Dict[str, Any]] = None
 
 class SupervisorState(TypedDict):
     """State for the supervisor that manages research tasks."""

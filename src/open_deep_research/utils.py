@@ -1,10 +1,12 @@
 """Utility functions and helpers for the Deep Research agent."""
 
 import asyncio
+import json
 import logging
 import os
 import warnings
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Annotated, Any, Dict, List, Literal, Optional
 
 import aiohttp
@@ -32,7 +34,7 @@ from tavily import AsyncTavilyClient
 from open_deep_research.configuration import Configuration, SearchAPI
 from open_deep_research.prompts import summarize_webpage_prompt
 from open_deep_research.rag_utils import create_rag_tool
-from open_deep_research.state import ResearchComplete, Summary
+from open_deep_research.state import AgentState, ResearchComplete, Summary
 
 ##########################
 # Tavily Search Tool Utils
@@ -990,3 +992,57 @@ def get_tavily_api_key(config: RunnableConfig):
         return api_keys.get("TAVILY_API_KEY")
     else:
         return os.getenv("TAVILY_API_KEY")
+
+async def save_consolidated_report(state: AgentState, config: RunnableConfig):
+    """Save consolidated report (MDX + BLUF) to output folder with timestamp filename.
+    
+    Creates a JSON file in the output/ folder at the project root with format:
+    {
+        "detailed_report": <mdx_json_report>,
+        "summary_page": <bluf_json_report>
+    }
+    
+    Filename format: ddmmyyyy_hhmmss.json (e.g., 15012024_143022.json)
+    
+    Args:
+        state: Agent state containing json_report and bluf_report
+        config: Runtime configuration (not used but required for node signature)
+        
+    Returns:
+        Empty dict (no state updates needed)
+    """
+    # Step 1: Extract reports from state
+    json_report = state.get("json_report", {})
+    bluf_report = state.get("bluf_report", {})
+    
+    # Step 2: Determine project root (assume utils.py is in src/open_deep_research/)
+    # Go up from src/open_deep_research/utils.py -> src/open_deep_research -> src -> project root
+    current_file = Path(__file__)
+    project_root = current_file.parent.parent.parent
+    
+    # Step 3: Create output directory if it doesn't exist
+    output_dir = project_root / "output"
+    output_dir.mkdir(exist_ok=True)
+    
+    # Step 4: Generate timestamp filename (ddmmyyyy_hhmmss.json)
+    now = datetime.now()
+    timestamp_str = now.strftime("%d%m%Y_%H%M%S")
+    filename = f"{timestamp_str}.json"
+    filepath = output_dir / filename
+    
+    # Step 5: Create consolidated report structure
+    consolidated_report = {
+        "detailed_report": json_report,
+        "summary_page": bluf_report
+    }
+    
+    # Step 6: Save to file with proper JSON formatting
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(consolidated_report, f, indent=2, ensure_ascii=False)
+        logging.info(f"Consolidated report saved to {filepath}")
+    except Exception as e:
+        logging.error(f"Failed to save consolidated report: {e}")
+    
+    # Step 7: Return empty dict (no state updates)
+    return {}

@@ -138,3 +138,57 @@ class MdxDocument(BaseModel):
         ..., 
         description="The sequence of blocks that constitute the document."
     )
+
+# BLUF Writer Schemas
+
+class BlufBlock(BaseModel):
+    """Bottom Line Up Front - executive summary block."""
+    type: Literal["bluf_block"] = "bluf_block"
+    title: str = Field(..., description="The title for the BLUF block (typically 'Bottom Line').")
+    content: str = Field(..., description="A synthesized paragraph of 2-3 sentences summarizing what happened, why it matters, and the most urgent action.")
+
+class ActionGroup(BaseModel):
+    """A group of related action items with an executive summary."""
+    group_title: str = Field(..., description="Concise, authoritative title for the action group (e.g., 'Immediate Containment', 'Short-Term Remediation').")
+    executive_summary: str = Field(..., description="1-2 concise sentences describing the high-level goal of this group's actions.")
+    action_items: List[str] = Field(..., description="List of clear, direct action items paraphrased from the controls.")
+
+class NowWhatBlock(BaseModel):
+    """Prioritized action groups with an introductory sentence."""
+    type: Literal["now_what_block"] = "now_what_block"
+    title: str = Field(..., description="The title for the Now What block (typically 'Now What').")
+    intro_sentence: str = Field(..., description="A single 'corporate cool' introductory sentence framing the action groups.")
+    action_groups: List[ActionGroup] = Field(..., description="2-3 logical groups of actions, prioritized by urgency and thematic alignment.")
+
+class Implication(BaseModel):
+    """A business-level risk or implication."""
+    title: str = Field(..., description="The core risk or implication title.")
+    description: str = Field(..., description="A 1-sentence explanation of the implication.")
+
+class SoWhatBlock(BaseModel):
+    """Business-level implications distilled from technical analysis."""
+    type: Literal["so_what_block"] = "so_what_block"
+    title: str = Field(..., description="The title for the So What block (typically 'So What').")
+    intro_sentence: str = Field(..., description="A single sentence framing the list of implications.")
+    implications: List[Implication] = Field(..., description="List of primary business-level implications.")
+
+class Indicator(BaseModel):
+    """A forward-looking indicator to watch."""
+    title: str = Field(..., description="The thing to watch (e.g., 'Vendor & Community Response', 'C2 Infrastructure Activity').")
+    description: str = Field(..., description="Description following the pattern: (1) The Signal - what to monitor, (2) The Rationale - why it matters.")
+
+class WhatsNextBlock(BaseModel):
+    """Key indicators to watch for forward-looking forecast."""
+    type: Literal["whats_next_block"] = "whats_next_block"
+    title: str = Field(..., description="The title for the Whats Next block (typically 'Whats Next').")
+    intro_sentence: str = Field(..., description="A single sentence framing the list of indicators.")
+    indicators: List[Indicator] = Field(..., description="2-3 logical, forward-looking indicators.")
+
+class BlufDocument(BaseModel):
+    """
+    The complete BLUF (Bottom Line Up Front) document containing executive summary blocks.
+    """
+    bluf_block: BlufBlock = Field(..., description="Bottom line summary block.")
+    now_what_block: NowWhatBlock = Field(..., description="Prioritized action groups block.")
+    so_what_block: SoWhatBlock = Field(..., description="Business implications block.")
+    whats_next_block: WhatsNextBlock = Field(..., description="Forward-looking indicators block.")
