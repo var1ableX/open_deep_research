@@ -666,11 +666,7 @@ Definitions for each block:
     2.  **The Business Impact:** The content that discusses the consequences, risks, or scope of the incident.
     3.  **The Most Urgent Action:** The single most critical, time-sensitive action from the `controls_table_component` (or any other list of recommendations).
 * **Processing Rules:**
-    1.  Read the content from the three "ingredients" you have identified.
-    2.  **Synthesize** these ingredients to answer three questions in a single paragraph, following the "External Advisor" point of view defined in the Global Processing Rules:
-        1.  **What happened?** (from The "Overview" ingredient)
-        2.  **Why does it matter?** (from The "Business Impact" ingredient, framed objectively)
-        3.  **What is the single most urgent action?** (from The "Most Urgent Action" ingredient, framed as a suggestion)
+    **Synthesize** these ingredients to answer three questions in a single paragraph, following the "External Advisor" point of view defined in the Global Processing Rules: What happened? (from The "Overview" ingredient), Why does it matter? (from The "Business Impact" ingredient, framed objectively), and What is the single most urgent action? (from The "Most Urgent Action" ingredient, framed as a suggestion).
 * **Output Format Example:**
     ```json
     {{
@@ -686,18 +682,17 @@ Definitions for each block:
 * **Source Ingredients (from `MdxDocument` JSON):**
     1.  **The Action List:** The full `controls` array from the `controls_table_component`.
 * **Processing Rules:**
-    1.  **Find the Source:** Locate the `controls_table_component` in the input JSON.
-    2.  **Synthesize Advisory Intro:** Create a single, "corporate cool" introductory sentence that applies the "Authoritative Suggestion" rule (from Global Rules). This sentence will be placed in its own `intro_sentence` field.
-    3.  **Analyze and Group (CRITICAL):** You must create 2-3 logical groups from the `controls` array. Follow this heuristic:
+    1.  **Synthesize Advisory Intro:** Create a single, "corporate cool" introductory sentence that applies the "Authoritative Suggestion" rule (from Global Rules).
+    2.  **Analyze and Group (CRITICAL):** You must create 2-3 logical groups from the `controls` array. Follow this heuristic:
         * **Primary Sort:** Group by **urgency** (e.g., immediate actions vs. long-term strategic fixes).
         * **Secondary Sort:** Group by **thematic alignment** (e.g., `Containment` -> `Remediation` -> `Resilience/Hardening`).
         * **Tie-breaker:** If an action is ambiguous, classify it based on **time-to-implement** and **immediacy of risk reduction**.
         * **Size Guardrail:** Groups should ideally contain 3-5 actions.
-    4.  **Create Group Titles:** You MUST create concise, authoritative titles for these groups (e.g., "Immediate Containment," "Short-Term Remediation," "Strategic Enhancements"). These will be `group_title` fields.
-    5.  **Synthesize Actions:** Paraphrase the relevant `control` descriptions into clear, direct actions. These will be the `action_items` array.
-    6.  **Synthesize Executive Summary:** After populating the `action_items` for a group, synthesize them into a single `executive_summary` string (1-2 concise sentences) that describes the high-level *goal* of that group's actions.
-* **Output Format Example:**
-    The JSON output for this block **MUST** be in the following format:
+    3.  **Create Group Titles:** You MUST create concise, authoritative titles for these groups (e.g., "Immediate Containment," "Short-Term Remediation," "Strategic Enhancements").
+    4.  **Synthesize Actions:** Paraphrase the relevant `control` descriptions into clear, direct actions.
+    5.  **Synthesize Executive Summary:** After populating the `action_items` for a group, synthesize them into a single `executive_summary` string (1-2 concise sentences) that summarizes/rolls up what those action items involve.
+* **Output Format:**
+    See the example below for the required JSON structure:
 
     ```json
     {{
@@ -740,12 +735,9 @@ Definitions for each block:
     1.  **The Impact Content:** The content within any `section_block` that discusses the *consequences*, *business risks*, *scope*, or *impact* of the incident.
     2.  **The Analysis Content:** The content within any `section_block` that provides the *analytical summary*, *root cause*, or *high-level takeaway*.
 * **Processing Rules:**
-    1.  Read the content from the "Impact" and "Analysis" ingredients you have identified.
-    2.  **Synthesize** this text into the required JSON output structure, following the "External Advisor" point of view defined in the Global Processing Rules:
-        * First, create a single `intro_sentence` to frame the list (e.g., "This incident is significant as...").
-        * Second, create an `implications` array. For each implication, synthesize a `title` (the core risk) and a `description` (the 1-sentence explanation).
-* **Output Format Example:**
-    The JSON output for this block **MUST** be in the following format:
+    **Synthesize** this text into the required JSON output structure, following the "External Advisor" point of view defined in the Global Processing Rules.
+* **Output Format:**
+    See the example below for the required JSON structure:
 
     ```json
     {{
@@ -778,20 +770,9 @@ Definitions for each block:
     2.  **Attacker TTPs:** The data in `tools_and_mechanisms`, `mitre_attack_chain_component`, and `vulnerabilities_exploited`.
     3.  **Response Actions:** The data in the `controls_table_component`.
 * **Processing Rules:**
-    1.  Read the content from **all** the "Source Ingredients" you have identified.
-    2.  **Synthesize** this combined data into 2-3 logical, forward-looking indicators.
-        * (e.g., If the TTP is a "blockchain C2," an indicator is "C2 Infrastructure Activity.")
-        * (e.g., If the vulnerability is "Marketplace Trust," an indicator is "Vendor Response.")
-        * (e.g., If the TTP is novel, an indicator is "Copycat Attacks.")
-    3.  **Structure the Output (CRITICAL):**
-        * Create a single `intro_sentence` to frame the list (e.g., "The following are key indicators to watch...").
-        * Create an `indicators` array. For each indicator, you MUST synthesize:
-            * A `title` (the thing to watch, e.g., "Vendor & Community Response").
-            * A `description` that follows a specific pattern:
-                * **(1) The Signal:** What to monitor (e.g., "Monitor for an official statement...").
-                * **(2) The Rationale:** Why it matters (e.g., "...as this will dictate the timeline for a permanent patch.").
-* **Output Format Example:**
-    The JSON output for this block **MUST** be in the following format:
+    Synthesize the combined source data into 2-3 logical, forward-looking indicators. Each indicator should describe both the signal to monitor and the rationale for why it matters.
+* **Output Format:**
+    See the example below for the required JSON structure:
 
     ```json
     {{

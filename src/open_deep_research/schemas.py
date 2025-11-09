@@ -150,7 +150,7 @@ class BlufBlock(BaseModel):
 class ActionGroup(BaseModel):
     """A group of related action items with an executive summary."""
     group_title: str = Field(..., description="Concise, authoritative title for the action group (e.g., 'Immediate Containment', 'Short-Term Remediation').")
-    executive_summary: str = Field(..., description="1-2 concise sentences describing the high-level goal of this group's actions.")
+    executive_summary: str = Field(..., description="1-2 concise sentences that summarize/roll up the action_items in this group.")
     action_items: List[str] = Field(..., description="List of clear, direct action items paraphrased from the controls.")
 
 class NowWhatBlock(BaseModel):
