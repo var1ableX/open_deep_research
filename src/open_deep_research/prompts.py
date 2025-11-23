@@ -690,7 +690,16 @@ Definitions for each block:
         * **Size Guardrail:** Groups should ideally contain 3-5 actions.
     3.  **Create Group Titles:** You MUST create concise, authoritative titles for these groups (e.g., "Immediate Containment," "Short-Term Remediation," "Strategic Enhancements").
     4.  **Synthesize Actions:** Paraphrase the relevant `control` descriptions into clear, direct actions.
-    5.  **Synthesize Executive Summary:** After populating the `action_items` for a group, synthesize them into a single `executive_summary` string (1-2 concise sentences) that summarizes/rolls up what those action items involve.
+    5. **Synthesize Executive Summary (CRITICAL):**
+      - Write a 1–2 sentence, self-contained executive summary for the group.
+      - It MUST stand alone: an executive who reads ONLY this sentence must immediately understand the concrete security objective that will be accomplished by executing the actions in this group.
+      - NEVER use meta-language such as “This group focuses on…”, “These actions address…”, “The following steps…”, etc.
+      - Use direct, outcome-oriented language that describes the end state or the risk that is eliminated/mitigated.
+      - Preferred style: Start with the verb of the desired outcome or the risk being closed.
+      - Example good summaries:
+            • "Immediately block the malicious extension’s network callbacks and remove it from all developer machines to stop ongoing data exfiltration."
+            • "Evict the attacker by forcing a full rotation of all credentials and secrets that may have been exposed."
+            • "Prevent recurrence by establishing an allow-list policy for IDE extensions and conducting a comprehensive audit of installed tools."
 * **Output Format:**
     See the example below for the required JSON structure:
 
@@ -702,7 +711,7 @@ Definitions for each block:
       "action_groups": [
         {{
           "group_title": "Immediate Containment",
-          "executive_summary": "This involves an immediate, org-wide uninstall of the malicious extension and blocking its network access to prevent further damage.",
+          "executive_summary": "Remove the malicious \"juan-bianco.solidity-vlang\" extension from every developer workstation and block all network communication to sleepyduck[.]xyz to halt ongoing data exfiltration and command-and-control activity.",
           "action_items": [
             "Uninstall the \"juan-bianco.solidity-vlang\" extension from all environments.",
             "Block the primary C2 domain (sleepyduck[.]xyz) at the network firewall and monitor for related network calls."
@@ -710,14 +719,14 @@ Definitions for each block:
         }},
         {{
           "group_title": "Short-Term Remediation",
-          "executive_summary": "The next step is to assume credentials have been compromised and perform a full rotation to evict the attacker from any established foothold.",
+          "executive_summary": "Evict the attacker from any compromised accounts and systems by forcing an organization-wide rotation of all credentials, secrets, and API keys that may have been exposed.",
           "action_items": [
             "Initiate a full credential and secrets rotation for all development staff and associated systems."
           ]
         }},
         {{
           "group_title": "Long-Term Strategic Fixes",
-          "executive_summary": "Finally, address the root cause by auditing all developer tools and hardening IDEs to prevent similar supply chain attacks.",
+          "executive_summary": "Prevent recurrence of supply-chain compromise by establishing an allow-list policy for IDE extensions, conducting a full audit of currently installed tools, and ensuring all IDEs and frameworks are fully patched.",
           "action_items": [
             "Conduct a full audit of all developer extensions and establish a formal 'allow-list' policy.",
             "Ensure all IDEs and underlying frameworks are fully patched."

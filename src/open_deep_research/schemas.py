@@ -150,7 +150,7 @@ class BlufBlock(BaseModel):
 class ActionGroup(BaseModel):
     """A group of related action items with an executive summary."""
     group_title: str = Field(..., description="Concise, authoritative title for the action group (e.g., 'Immediate Containment', 'Short-Term Remediation').")
-    executive_summary: str = Field(..., description="1-2 concise sentences that summarize/roll up the action_items in this group.")
+    executive_summary: str = Field(..., description="1–2 sentence self-contained executive summary. Starting with an action oriented verb, it must fully communicate the security objective and outcome of the group without referencing 'this group', 'these actions', or requiring the reader to view the action_items. Use direct, outcome-focused language starting with the risk eliminated or end-state achieved.")
     action_items: List[str] = Field(..., description="List of clear, direct action items paraphrased from the controls.")
 
 class NowWhatBlock(BaseModel):
