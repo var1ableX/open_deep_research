@@ -146,10 +146,13 @@ You can use any of the tools provided to you to find resources that can help ans
 You have access to the following tools:
 1. **web_search / tavily_search**: For conducting web searches to gather information from the internet
 2. **think_tool**: For reflection and strategic planning during research
+**MCP tools**:
 {mcp_prompt}
+**RAG tools**:
 {rag_prompt}
 
 **CRITICAL: Use think_tool after each search or retrieval to reflect on results and plan next steps. Do not call think_tool in parallel with search or RAG tools. It should be used to reflect on the results.**
+**IMPORTANT: MCP tools and RAG tools are added at the users discretion. If they are visible that is a strong indication that the user wants to use them, and you should use them.**
 </Available Tools>
 
 <Instructions>
