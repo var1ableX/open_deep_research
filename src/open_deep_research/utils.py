@@ -599,6 +599,13 @@ async def get_all_tools(config: RunnableConfig):
     # Add MCP tools if configured
     mcp_tools = await load_mcp_tools(config, existing_tool_names)
     tools.extend(mcp_tools)
+    
+    # Log MCP tool loading status
+    if mcp_tools:
+        logging.info(f"MCP tools loaded: {len(mcp_tools)} tools")
+        logging.info(f"MCP tool names: {[t.name if hasattr(t, 'name') else 'unknown' for t in mcp_tools]}")
+    else:
+        logging.info("No MCP tools loaded")
 
     # Add RAG tools if configured
     # Debug: Log entire config structure to find where the token is
@@ -641,6 +648,12 @@ async def get_all_tools(config: RunnableConfig):
     else:
         logging.info("RAG tools not configured - skipping RAG tool creation")
     
+    # Log RAG tool loading status
+    rag_tools = [t for t in tools if hasattr(t, 'name') and 'rag' in (t.name if hasattr(t, 'name') else '').lower()]
+    if rag_tools:
+        logging.info(f"RAG tools loaded: {len(rag_tools)} tools")
+        logging.info(f"RAG tool names: {[t.name if hasattr(t, 'name') else 'unknown' for t in rag_tools]}")
+    
     return tools
 
 
@@ -661,6 +674,29 @@ def generate_rag_tool_description(rag_tools: list[BaseTool]) -> str:
     for i, rag_tool in enumerate(rag_tools, start=3):  # Start at 3 (after web_search and think_tool)
         tool_name = rag_tool.name if hasattr(rag_tool, 'name') else "unknown"
         tool_desc = rag_tool.description if hasattr(rag_tool, 'description') else "Search indexed documents"
+        descriptions.append(f"{i}. **{tool_name}**: {tool_desc}")
+    
+    return "\n" + "\n".join(descriptions) if descriptions else ""
+
+def generate_mcp_tool_description(mcp_tools: list[BaseTool]) -> str:
+    """Generate a description of available MCP tools for the system prompt.
+    
+    Args:
+        mcp_tools: List of MCP tools that have been loaded
+        
+    Returns:
+        Formatted string describing the MCP tools
+    """
+    if not mcp_tools:
+        return ""
+    
+    descriptions = []
+    # Determine starting number based on existing tools (web_search/tavily_search=1, think_tool=2)
+    # MCP tools come after these, so start at 3
+    base_tool_count = 2  # web_search and think_tool
+    for i, mcp_tool in enumerate(mcp_tools, start=base_tool_count + 1):
+        tool_name = mcp_tool.name if hasattr(mcp_tool, 'name') else "unknown"
+        tool_desc = mcp_tool.description if hasattr(mcp_tool, 'description') else "MCP tool for extended functionality"
         descriptions.append(f"{i}. **{tool_name}**: {tool_desc}")
     
     return "\n" + "\n".join(descriptions) if descriptions else ""

@@ -1,6 +1,7 @@
 """Main LangGraph implementation for the Deep Research agent."""
 
 import asyncio
+import logging
 from typing import Literal
 
 from langchain.chat_models import init_chat_model
@@ -44,6 +45,8 @@ from open_deep_research.state import (
 )
 from open_deep_research.utils import (
     anthropic_websearch_called,
+    generate_mcp_tool_description,
+    generate_rag_tool_description,
     get_all_tools,
     get_api_key_for_model,
     get_model_token_limit,
@@ -392,6 +395,49 @@ async def researcher(state: ResearcherState, config: RunnableConfig) -> Command[
             "search API or add MCP tools or RAG tools to your configuration."
         )
     
+    # Identify MCP and RAG tools for validation and auto-generation
+    # Helper function to get tool name safely (handles both objects and dicts)
+    def get_tool_name(tool):
+        if isinstance(tool, dict):
+            return tool.get('name', 'unknown')
+        elif hasattr(tool, 'name'):
+            return tool.name
+        return 'unknown'
+    
+    # MCP tools are those that aren't standard tools (think_tool, ResearchComplete, web_search variants)
+    standard_tool_names = {'think_tool', 'ResearchComplete', 'web_search', 'tavily_search'}
+    mcp_tools = [
+        t for t in tools 
+        if get_tool_name(t) not in standard_tool_names and not ('rag' in get_tool_name(t).lower())
+    ]
+    rag_tools = [
+        t for t in tools 
+        if 'rag' in get_tool_name(t).lower()
+    ]
+    
+    # Validate and log prompt configuration
+    if mcp_tools and not configurable.mcp_prompt:
+        logging.warning(
+            f"MCP tools loaded ({len(mcp_tools)} tools: {[get_tool_name(t) for t in mcp_tools]}) "
+            f"but mcp_prompt is not set. Auto-generating prompt."
+        )
+    if rag_tools and not configurable.rag_prompt:
+        logging.warning(
+            f"RAG tools loaded ({len(rag_tools)} tools: {[get_tool_name(t) for t in rag_tools]}) "
+            f"but rag_prompt is not set. Auto-generating prompt."
+        )
+    
+    # Auto-generate prompts if tools exist but prompts are missing
+    mcp_prompt = configurable.mcp_prompt
+    if not mcp_prompt and mcp_tools:
+        mcp_prompt = generate_mcp_tool_description(mcp_tools)
+        logging.info("Auto-generated MCP tool description prompt")
+    
+    rag_prompt = configurable.rag_prompt
+    if not rag_prompt and rag_tools:
+        rag_prompt = generate_rag_tool_description(rag_tools)
+        logging.info("Auto-generated RAG tool description prompt")
+    
     # Step 2: Configure the researcher model with tools
     research_model_config = {
         "model": configurable.research_model,
@@ -402,8 +448,8 @@ async def researcher(state: ResearcherState, config: RunnableConfig) -> Command[
     
     # Prepare system prompt with MCP context if available
     researcher_prompt = research_system_prompt.format(
-        mcp_prompt=configurable.mcp_prompt or "", 
-        rag_prompt=configurable.rag_prompt or "",
+        mcp_prompt=mcp_prompt or "", 
+        rag_prompt=rag_prompt or "",
         date=get_today_str()
     )
     
